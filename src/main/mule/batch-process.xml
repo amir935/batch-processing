@@ -53,7 +53,9 @@ payload]]></ee:set-payload>
 					</ee:transform>
 						<logger level="INFO" doc:name="Logger" doc:id="c6ba8681-1992-4bd3-ac34-7422126930f6" message="#[payload.City]"/>
 					</batch:aggregator>
-				</batch:step>
+					<logger level="INFO" doc:name="Logger" doc:id="20a0beb8-49ed-4923-ba23-6f84cd5fb887" />
+				
+</batch:step>
 			</batch:process-records>
 		</batch:job>
 	</flow>
