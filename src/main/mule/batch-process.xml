@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd 
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="cffe697f-c55d-48db-aacc-bb57e854fe79" >
+		<file:connection workingDir="C:\file" />
+	</file:config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="2b010455-4790-4cbf-8a9d-7f9365859f01" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<validation:config name="Validation_Config" doc:name="Validation Config" doc:id="639706d0-d36d-4341-a1ad-315b07abff0d" />
+<db:config name="Database_Config" doc:name="Database Config" doc:id="efe538be-7993-4a41-8804-cbc07516af77" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="phone" />
+	</db:config>
+		<flow name="batch-processFlow" doc:id="7fcccb12-6aaf-47b7-a0db-65a07a7f2219" >
+		<file:listener doc:name="On New or Updated File" doc:id="561f8174-38bc-472b-9416-460efcae2a4a" config-ref="File_Config" directory="C:\file\input" watermarkMode="MODIFIED_TIMESTAMP" outputMimeType="application/csv">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</file:listener>
+		<ee:transform doc:name="Transform Message" doc:id="4e348827-751b-465e-afde-762bf4940287" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<batch:job jobName="batch-processBatch_Job" doc:id="03cb5174-8b85-42d8-92bc-ddd6baf5b52b" >
+			<batch:process-records >
+				<batch:step name="Batch_Step" doc:id="a1e569c3-a94e-42e0-8896-a5d49824baa2" >
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="8de7aee3-715d-47eb-8770-d47492921826" size="10">
+						<ee:transform doc:name="Transform Message" doc:id="8fb1b1a2-2368-43fc-b87d-f1a71ccfb83b">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+						<logger level="INFO" doc:name="Logger" doc:id="c6ba8681-1992-4bd3-ac34-7422126930f6" message="#[payload.City]"/>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+		</batch:job>
+	</flow>
+	<flow name="batch-processFlow1" doc:id="7569fbb4-c66c-4e3d-80c9-30346434f5d9" >
+		<http:listener doc:name="Listener" doc:id="7834f93f-7c29-4df3-a1f1-c69a3fbd23d5" config-ref="HTTP_Listener_config" path="path"/>
+		<ee:transform doc:name="Transform Message" doc:id="f4168493-0f39-4db8-a197-8bf3d32502ba" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+["25191312a2306","251913122306","251913rt12a2306","25191312a2306"]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<batch:job jobName="batch-processBatch_Job1" doc:id="d485873f-a64a-4bab-aa69-f85106a17bef" maxFailedRecords="-1">
+			<batch:process-records >
+				<batch:step name="Batch_Step1" doc:id="993d63cd-c545-437f-8fe5-bca0348201b2" >
+					<validation:matches-regex doc:name="Matches regex" doc:id="03a9a930-85a8-4ea5-a6e7-401e37080063" value="#[payload]" regex="^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$" config-ref="Validation_Config"/>
+					<db:insert doc:name="Insert" doc:id="3942a9fc-0f68-44c3-88a9-f212fc2d706c" config-ref="Database_Config">
+						<db:sql ><![CDATA[insert into success (phone) values(:phone)]]></db:sql>
+						<db:input-parameters ><![CDATA[#[{
+	phone: payload
+}]]]></db:input-parameters>
+					</db:insert>
+				</batch:step>
+				<batch:step name="Batch_Step" doc:id="46251bdd-9315-4996-b116-d2a51f19aa73" acceptPolicy="ONLY_FAILURES">
+					<db:insert doc:name="Insert" doc:id="ba22eddb-6d06-44d7-a54f-1ad68703e292" config-ref="Database_Config">
+						<db:sql ><![CDATA[insert into fail (phone) values(:phone)]]></db:sql>
+						<db:input-parameters ><![CDATA[#[{
+	phone: payload
+}]]]></db:input-parameters>
+					</db:insert>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<ee:transform doc:name="Transform Message" doc:id="545cfb95-2eff-42fc-8eff-21b9dbea99c4" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="1f55d010-b8fd-420f-a4ff-5dc468302f7b" message="#[payload.failedRecords]"/>
+			</batch:on-complete>
+		</batch:job>
+	</flow>
+
+	
+	</mule>

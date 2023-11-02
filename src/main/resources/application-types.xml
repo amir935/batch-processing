@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="sales" format="csv">
+      <types:shape format="weave" example="examples/sales.csv"><![CDATA[%dw 2.0
+
+type sales = Array<{|  Transaction_date: String,   Product: String,   Price: String,   Payment_Type: String,   Name: String,   City: String,   State: String,   Country: String,   Account_Created: String,   Last_Login: String,   Latitude: String,   Longitude: String|}> {"isQuotedString": "false",
+"header": "true",
+"headerLineNumber": "0",
+"separator": ","}
+
+]]></types:shape>
+      <types:properties>
+        <types:property name="headerLineNumber" value="0"/>
+        <types:property name="header" value="true"/>
+        <types:property name="isQuotedString" value="false"/>
+        <types:property name="separator" value=","/>
+      </types:properties>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#05e9a0e9-c64d-45bd-936a-c9ad8101abb7">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="sales"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#561f8174-38bc-472b-9416-460efcae2a4a">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="sales"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>
